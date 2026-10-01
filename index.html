@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Perspective - Dual Perspective Tile Game</title>
+  <title>Perspective - Multi-Perspective Tile Game</title>
   <style>
     :root {
       --bg-dark: #0f101d;
@@ -170,12 +170,12 @@
       text-transform: uppercase;
     }
 
-    /* Board Wrapper & Edge Indicators positioned further OUTSIDE board */
+    /* Board Wrapper & Edge Indicators */
     .board-wrapper {
       position: relative;
       width: 100%;
       max-width: 660px;
-      padding: 40px 85px; /* Ample room on side margins */
+      padding: 40px 85px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -277,7 +277,6 @@
       font-weight: 600;
     }
 
-    /* Yellow Action Log Box (Most Recent Action at Top) */
     .action-log-container {
       flex: 1;
       background: rgba(0, 0, 0, 0.35);
@@ -358,7 +357,7 @@
       border: 1px solid var(--card-border);
       border-radius: 20px;
       width: 100%;
-      max-width: 540px;
+      max-width: 560px;
       max-height: 85vh;
       display: flex;
       flex-direction: column;
@@ -423,6 +422,57 @@
       margin-bottom: 4px;
     }
 
+    /* Tile Reference Graphic Styling */
+    .tile-ref-container {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .tile-ref-header {
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: var(--text-light);
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .tile-ref-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px 8px;
+      align-items: center;
+    }
+
+    @media (max-width: 480px) {
+      .tile-ref-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .tile-ref-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tile-ref-item svg {
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+    }
+
+    .tile-ref-num {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-light);
+    }
+
     .setting-group {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -485,7 +535,7 @@
   <!-- Scoreboard -->
   <div class="scoreboard" id="scoreboard"></div>
 
-  <!-- Board Wrapper with Edge Facing Labels outside -->
+  <!-- Board Wrapper with Edge Facing Labels -->
   <div class="board-wrapper">
     <div class="edge-label top" id="edgeLabelTop"></div>
     <div class="edge-label bottom" id="edgeLabelBottom"></div>
@@ -510,7 +560,7 @@
         </div>
       </div>
 
-      <!-- Action Log Container (Most Recent Action at Top) -->
+      <!-- Action Log Container -->
       <div class="action-log-container" id="actionLogContainer"></div>
     </div>
 
@@ -527,13 +577,35 @@
         <button class="close-btn closeModal">&times;</button>
       </div>
       <div class="modal-tabs">
-        <button class="tab-btn active" data-tab="tab-overview">Overview</button>
-        <button class="tab-btn" data-tab="tab-symbols">Symbols (1-15)</button>
-        <button class="tab-btn" data-tab="tab-perspective">Dual Perspective</button>
+        <button class="tab-btn active" data-tab="tab-symbols">Symbols (1-15)</button>
+        <button class="tab-btn" data-tab="tab-overview">Overview</button>
+        <button class="tab-btn" data-tab="tab-perspective">Multi Perspective</button>
         <button class="tab-btn" data-tab="tab-scoring">Matching</button>
       </div>
       <div class="modal-body">
-        <div id="tab-overview" class="tab-content">
+        
+        <!-- Symbol Tab (Front & Center) -->
+        <div id="tab-symbols" class="tab-content">
+          <div class="tile-ref-container">
+            <div class="tile-ref-header">TILE REFERENCE (VALUES 1–15)</div>
+            <div class="tile-ref-grid" id="tileRefGrid"></div>
+          </div>
+
+          <div class="rules-section">
+            <h3>4-Bit Binary Dot System</h3>
+            <p>Each tile contains 1 to 4 dots representing a binary number from 1 to 15 based on relative orientation:</p>
+            <ul style="margin-left: 20px; margin-top: 6px;">
+              <li><b>Top Dot</b> = 1</li>
+              <li><b>Right Dot</b> = 2</li>
+              <li><b>Bottom Dot</b> = 4</li>
+              <li><b>Left Dot</b> = 8</li>
+            </ul>
+            <p style="margin-top:8px;">Combining dot positions gives values from 1 to 15 (e.g., Top + Right = 1 + 2 = 3).</p>
+          </div>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="tab-overview" class="tab-content" style="display:none;">
           <div class="rules-section">
             <h3>Goal</h3>
             <p>Score points by placing tiles on the grid to create orthogonally connected clusters of tiles whose total count matches tile symbol values from your board edge perspective.</p>
@@ -547,19 +619,8 @@
             </ul>
           </div>
         </div>
-        <div id="tab-symbols" class="tab-content" style="display:none;">
-          <div class="rules-section">
-            <h3>4-Bit Binary Dot System</h3>
-            <p>Each tile contains 1 to 4 dots representing a binary number from 1 to 15 based on relative orientation:</p>
-            <ul style="margin-left: 20px; margin-top: 6px;">
-              <li><b>Top Dot</b> = 1</li>
-              <li><b>Right Dot</b> = 2</li>
-              <li><b>Bottom Dot</b> = 4</li>
-              <li><b>Left Dot</b> = 8</li>
-            </ul>
-            <p style="margin-top:8px;">Combining dot positions gives values from 1 to 15 (e.g., Top + Right = 1 + 2 = 3).</p>
-          </div>
-        </div>
+
+        <!-- Multi Perspective Tab -->
         <div id="tab-perspective" class="tab-content" style="display:none;">
           <div class="rules-section">
             <h3>Multi-Perspective Orientations</h3>
@@ -567,6 +628,8 @@
             <p style="margin-top:6px;">Because values are computed relative to each player's edge, a single tile represents different numbers to different players simultaneously!</p>
           </div>
         </div>
+
+        <!-- Matching Tab -->
         <div id="tab-scoring" class="tab-content" style="display:none;">
           <div class="rules-section">
             <h3>Connected Cluster Matches</h3>
@@ -574,6 +637,7 @@
             <p style="margin-top:6px;">If a tile's value equals N from a player's perspective edge, that tile clears and awards points to that player!</p>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -745,13 +809,12 @@
       if (!container) return;
       container.innerHTML = '';
 
-      // Reverse so most recent action is rendered at the top
       const recent = [...actionHistory].reverse();
 
       recent.forEach((msg, idx) => {
         const line = document.createElement('div');
         line.className = 'action-log-line';
-        if (idx === 0) { // Most recent
+        if (idx === 0) {
           line.style.opacity = '1';
           line.style.fontWeight = '800';
         } else if (idx === 1) {
@@ -764,6 +827,36 @@
         line.textContent = msg;
         container.appendChild(line);
       });
+    }
+
+    /* Tile Reference Graphic Renderer */
+    function renderTileReferenceGrid() {
+      const container = document.getElementById('tileRefGrid');
+      if (!container) return;
+      container.innerHTML = '';
+
+      for (let val = 1; val <= 15; val++) {
+        const item = document.createElement('div');
+        item.className = 'tile-ref-item';
+
+        const hasTop = (val & 1) !== 0;
+        const hasRight = (val & 2) !== 0;
+        const hasBottom = (val & 4) !== 0;
+        const hasLeft = (val & 8) !== 0;
+
+        const svg = `
+          <svg viewBox="0 0 36 36">
+            <rect x="2" y="2" width="32" height="32" rx="6" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.4)" stroke-width="1.8"/>
+            ${hasTop ? '<circle cx="18" cy="9" r="2.8" fill="#ffffff"/>' : ''}
+            ${hasRight ? '<circle cx="27" cy="18" r="2.8" fill="#ffffff"/>' : ''}
+            ${hasBottom ? '<circle cx="18" cy="27" r="2.8" fill="#ffffff"/>' : ''}
+            ${hasLeft ? '<circle cx="9" cy="18" r="2.8" fill="#ffffff"/>' : ''}
+          </svg>
+        `;
+
+        item.innerHTML = `${svg}<span class="tile-ref-num">${val}</span>`;
+        container.appendChild(item);
+      }
     }
 
     const boardCanvas = document.getElementById('boardCanvas');
@@ -791,6 +884,7 @@
       generateDraftTile();
       renderScoreboard();
       updateEdgeLabels();
+      renderTileReferenceGrid();
       updateUI();
       resizeCanvas();
       drawBoard();
@@ -839,7 +933,7 @@
         if (claimers.length > 0) {
           const names = claimers.map(c => c.name).join(', ');
           const firstPIndex = playerConfigs.findIndex(p => p.id === claimers[0].id);
-          labelEl.textContent = names; // Direction prefix removed
+          labelEl.textContent = names;
           labelEl.style.color = PLAYER_COLORS[firstPIndex].main;
           labelEl.style.borderColor = PLAYER_COLORS[firstPIndex].main;
           labelEl.style.display = 'flex';
