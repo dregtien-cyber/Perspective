@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Perspective - Dual Perspective Tile Game</title>
+  <style>
+    :root {
+      --bg-dark: #0f101d;
+      --card-bg: rgba(26, 28, 48, 0.85);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --p1-color: #ff6b35;
+      --p1-glow: rgba(255, 107, 53, 0.4);
+      --p2-color: #00e5ff;
+      --p2-glow: rgba(0, 229, 255, 0.4);
+      --p3-color: #10b981;
+      --p3-glow: rgba(16, 185, 129, 0.4);
+      --p4-color: #e056fd;
+      --p4-glow: rgba(224, 86, 253, 0.4);
+      --accent-gold: #ffd166;
+      --text-light: #f8f9fa;
+      --text-muted: #a0a5c0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% 20%, #1e2038 0%, #0f101d 80%);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      overflow-x: hidden;
+    }
+
+    /* Header & Navigation */
+    header {
+      width: 100%;
+      max-width: 620px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      margin-bottom: 8px;
+    }
+
+    .brand h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--p1-color), var(--p2-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-light);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Scoreboard - Flexible Grid for 2-4 players */
+    .scoreboard {
+      width: 100%;
+      max-width: 620px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .player-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 14px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .player-card.p1 { border-color: rgba(255, 107, 53, 0.3); }
+    .player-card.p2 { border-color: rgba(0, 229, 255, 0.3); }
+    .player-card.p3 { border-color: rgba(16, 185, 129, 0.3); }
+    .player-card.p4 { border-color: rgba(224, 86, 253, 0.3); }
+
+    .player-card.active.p1 { border-color: var(--p1-color); box-shadow: 0 0 12px var(--p1-glow); background: rgba(255, 107, 53, 0.1); }
+    .player-card.active.p2 { border-color: var(--p2-color); box-shadow: 0 0 12px var(--p2-glow); background: rgba(0, 229, 255, 0.1); }
+    .player-card.active.p3 { border-color: var(--p3-color); box-shadow: 0 0 12px var(--p3-glow); background: rgba(16, 185, 129, 0.1); }
+    .player-card.active.p4 { border-color: var(--p4-color); box-shadow: 0 0 12px var(--p4-glow); background: rgba(224, 86, 253, 0.1); }
+
+    .player-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-name {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .player-card.p1 .player-name { color: var(--p1-color); }
+    .player-card.p2 .player-name { color: var(--p2-color); }
+    .player-card.p3 .player-name { color: var(--p3-color); }
+    .player-card.p4 .player-name { color: var(--p4-color); }
+
+    .player-edge-info {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .player-score {
+      font-size: 1.3rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .player-tiles-count {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .turn-indicator {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* Board Wrapper & Edge Indicators */
+    .board-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 620px;
+      padding: 28px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .edge-label {
+      position: absolute;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(15, 16, 29, 0.9);
+      border: 1px solid var(--card-border);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .edge-label.top { top: 0; left: 50%; transform: translateX(-50%); }
+    .edge-label.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .edge-label.left { left: 0; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+    .edge-label.right { right: 0; top: 50%; transform: translateY(-50%) rotate(90deg); }
+
+    /* Game Board Container */
+    .board-container {
+      width: 100%;
+      aspect-ratio: 1;
+      position: relative;
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 20px;
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #boardCanvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      touch-action: none;
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      width: 100%;
+      max-width: 620px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 12px;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .draft-tile-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .draft-preview {
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .draft-preview canvas {
+      width: 56px;
+      height: 56px;
+    }
+
+    .draft-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .rotate-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text-light);
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      flex: 1;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5, #3b82f6);
+      border-color: #6366f1;
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      border-color: #fbbf24;
+    }
+
+    .status-banner {
+      font-size: 0.85rem;
+      text-align: center;
+      color: var(--accent-gold);
+      font-weight: 700;
+      min-height: 22px;
+      transition: color 0.3s ease;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #16182e;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 540px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn.active {
+      color: var(--p2-color);
+      border-bottom-color: var(--p2-color);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #c0c4e0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .rules-section h3 {
+      color: var(--text-light);
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+
+    .setting-group {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+    }
+
+    .setting-group-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--accent-gold);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .setting-item:last-child {
+      margin-bottom: 0;
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text-light);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    option {
+      background: #16182e;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <h1>PERSPECTIVE</h1>
+    </div>
+    <div class="header-btns">
+      <button class="icon-btn" id="flipViewBtn">🔄 View</button>
+      <button class="icon-btn" id="helpBtn">❓ Rules</button>
+      <button class="icon-btn" id="settingsBtn">⚙️ Options</button>
+    </div>
+  </header>
+
+  <!-- Scoreboard Dynamic -->
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <!-- Board Wrapper with Visual Edge Facing Labels -->
+  <div class="board-wrapper">
+    <div class="edge-label top" id="edgeLabelTop">Top</div>
+    <div class="edge-label bottom" id="edgeLabelBottom">Bottom</div>
+    <div class="edge-label left" id="edgeLabelLeft">Left</div>
+    <div class="edge-label right" id="edgeLabelRight">Right</div>
+
+    <div class="board-container" id="boardContainer">
+      <canvas id="boardCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Controls Panel -->
+  <div class="controls-panel">
+    <div class="action-bar">
+      <div class="draft-tile-container">
+        <div class="draft-preview" id="draftPreview" title="Tap to rotate tile">
+          <canvas id="draftCanvas"></canvas>
+        </div>
+        <div class="draft-label">
+          <div>Next Tile</div>
+          <div style="font-size:0.65rem; color:var(--text-muted);">Tap tile to spin</div>
+        </div>
+      </div>
+      <div class="rotate-btns">
+        <button class="btn" id="rotateCcwBtn">↺ 90°</button>
+        <button class="btn" id="rotateCwBtn">↻ 90°</button>
+      </div>
+    </div>
+    <div class="rotate-btns">
+      <button class="btn btn-accent" id="rotateBoardTileBtn" style="display:none;">↻ Rotate Board Tile</button>
+    </div>
+    <div class="status-banner" id="statusBanner">Player 1: Tap any empty cell to place your tile.</div>
+  </div>
+
+  <!-- Rules & Help Modal -->
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>How to Play Perspective</h2>
+        <button class="close-btn closeModal">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="tab-overview">Overview</button>
+        <button class="tab-btn" data-tab="tab-symbols">Symbols (1-15)</button>
+        <button class="tab-btn" data-tab="tab-perspective">Dual Perspective</button>
+        <button class="tab-btn" data-tab="tab-scoring">Matching</button>
+      </div>
+      <div class="modal-body">
+        <div id="tab-overview" class="tab-content">
+          <div class="rules-section">
+            <h3>Goal</h3>
+            <p>Score points by placing tiles on the grid to create orthogonally connected clusters of tiles whose total count matches tile symbol values from your board edge perspective.</p>
+          </div>
+          <div class="rules-section">
+            <h3>Your Turn Options</h3>
+            <p>On each turn, perform <b>one</b> action:</p>
+            <ul style="margin-left: 20px; margin-top: 4px;">
+              <li><b>Place a Tile:</b> Rotate your draft tile, then tap an empty cell on the grid.</li>
+              <li><b>Rotate Existing Tile:</b> Tap a tile on the board to select it, then tap "Rotate Board Tile" to turn it 90° CW.</li>
+            </ul>
+          </div>
+        </div>
+        <div id="tab-symbols" class="tab-content" style="display:none;">
+          <div class="rules-section">
+            <h3>4-Bit Binary Dot System</h3>
+            <p>Each tile contains 1 to 4 dots representing a binary number from 1 to 15 based on relative orientation:</p>
+            <ul style="margin-left: 20px; margin-top: 6px;">
+              <li><b>Top Dot</b> = 1</li>
+              <li><b>Right Dot</b> = 2</li>
+              <li><b>Bottom Dot</b> = 4</li>
+              <li><b>Left Dot</b> = 8</li>
+            </ul>
+            <p style="margin-top:8px;">Combining dot positions gives values from 1 to 15 (e.g., Top + Right = 1 + 2 = 3).</p>
+          </div>
+        </div>
+        <div id="tab-perspective" class="tab-content" style="display:none;">
+          <div class="rules-section">
+            <h3>Multi-Perspective Orientations</h3>
+            <p>Each player is assigned to face one of the 4 board edges (Bottom 0°, Left 90°, Top 180°, or Right 270°)!</p>
+            <p style="margin-top:6px;">Because values are computed relative to each player's edge, a single tile represents different numbers to different players simultaneously!</p>
+          </div>
+        </div>
+        <div id="tab-scoring" class="tab-content" style="display:none;">
+          <div class="rules-section">
+            <h3>Connected Cluster Matches</h3>
+            <p>Whenever tiles are connected horizontally or vertically, the total count of touching tiles N is calculated.</p>
+            <p style="margin-top:6px;">If a tile's value equals N from a player's perspective edge, that tile clears and awards points to that player!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Game Options</h2>
+        <button class="close-btn closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="setting-group">
+          <div class="setting-group-title">General Settings</div>
+          <div class="setting-item">
+            <span class="setting-label">Sound Effects</span>
+            <select id="soundSelect">
+              <option value="false" selected>Off (Muted)</option>
+              <option value="true">On</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Number of Players</span>
+            <select id="playerCountSelect">
+              <option value="2" selected>2 Players</option>
+              <option value="3">3 Players</option>
+              <option value="4">4 Players</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Board Size</span>
+            <select id="sizeSelect">
+              <option value="5" selected>Small (5 x 5)</option>
+              <option value="10">Medium (10 x 10)</option>
+              <option value="15">Large (15 x 15)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Tiles Per Player</span>
+            <select id="tilesSelect">
+              <option value="20" selected>20 Tiles</option>
+              <option value="40">40 Tiles</option>
+              <option value="80">80 Tiles</option>
+              <option value="0">Unlimited</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Auto-Rotate View</span>
+            <select id="autoflipSelect">
+              <option value="true">On Turn Change</option>
+              <option value="false" selected>Manual Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-group" id="playerConfigsGroup">
+          <div class="setting-group-title">Player Facing Edges & Controllers</div>
+          <div id="playerConfigsContainer"></div>
+        </div>
+
+        <button class="btn btn-primary" id="newGameBtn" style="margin-top:10px;">Apply & Start New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Audio Synthesizer (Default sound: OFF)
+    let soundEnabled = false;
+
+    const AudioSynth = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      },
+      play(type) {
+        if (!soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          const now = this.ctx.currentTime;
+
+          if (type === 'place') {
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+          } else if (type === 'rotate') {
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(600, now + 0.06);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.06);
+            osc.start(now);
+            osc.stop(now + 0.06);
+          } else if (type === 'clear') {
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.25);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+          }
+        } catch(e) {}
+      }
+    };
+
+    const PLAYER_COLORS = [
+      { main: '#ff6b35', glow: 'rgba(255, 107, 53, 0.4)' }, // Player 1
+      { main: '#00e5ff', glow: 'rgba(0, 229, 255, 0.4)' },  // Player 2
+      { main: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' }, // Player 3
+      { main: '#e056fd', glow: 'rgba(224, 86, 253, 0.4)' }  // Player 4
+    ];
+
+    const EDGE_ORIENTATIONS = {
+      bottom: 0, // 0 deg
+      left: 1,   // 90 deg CW
+      top: 2,    // 180 deg
+      right: 3   // 270 deg CW
+    };
+
+    const EDGE_VIEW_ANGLES = {
+      bottom: 0,
+      left: 270,
+      top: 180,
+      right: 90
+    };
+
+    const TILE_PALETTE = [
+      "",
+      "#4a5568", "#3182ce", "#38a169", "#d69e2e",
+      "#dd6b20", "#e53e3e", "#805ad5", "#319795",
+      "#d69e2e", "#3182ce", "#00b4d8", "#38a169",
+      "#d81b60", "#7b2cbf", "#e65100"
+    ];
+
+    let gridSize = 5;
+    let grid = [];
+    let numPlayers = 2;
+    let playerConfigs = [
+      { id: 1, name: 'Player 1', type: 'human', edge: 'bottom' },
+      { id: 2, name: 'Player 2', type: 'ai-medium', edge: 'top' },
+      { id: 3, name: 'Player 3', type: 'human', edge: 'left' },
+      { id: 4, name: 'Player 4', type: 'human', edge: 'right' }
+    ];
+
+    let activePlayerIndex = 0;
+    let scores = [0, 0, 0, 0];
+    let tilesPerPlayer = 20;
+    let tilesRemaining = [20, 20, 20, 20];
+    let autoFlip = false;
+    let currentViewAngle = 0;
+    let draftTile = { value: 1, rotation: 0 };
+    let selectedCell = null;
+    let isAnimating = false;
+    let highlightedMatches = [];
+
+    const boardCanvas = document.getElementById('boardCanvas');
+    const boardCtx = boardCanvas.getContext('2d');
+    const draftCanvas = document.getElementById('draftCanvas');
+    const draftCtx = draftCanvas.getContext('2d');
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function initGame() {
+      grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
+      scores = [0, 0, 0, 0];
+      tilesRemaining = [tilesPerPlayer, tilesPerPlayer, tilesPerPlayer, tilesPerPlayer];
+      activePlayerIndex = 0;
+      selectedCell = null;
+      highlightedMatches = [];
+      isAnimating = false;
+      currentViewAngle = 0;
+      
+      updateBoardRotationView();
+      generateDraftTile();
+      renderScoreboard();
+      updateEdgeLabels();
+      updateUI();
+      resizeCanvas();
+      drawBoard();
+    }
+
+    function updateBoardRotationView() {
+      const activePlayer = playerConfigs[activePlayerIndex];
+      if (autoFlip) {
+        currentViewAngle = EDGE_VIEW_ANGLES[activePlayer.edge] || 0;
+      }
+      document.getElementById('boardContainer').style.transform = `rotate(${currentViewAngle}deg)`;
+    }
+
+    function renderScoreboard() {
+      const scoreboard = document.getElementById('scoreboard');
+      scoreboard.innerHTML = '';
+
+      for (let i = 0; i < numPlayers; i++) {
+        const p = playerConfigs[i];
+        const card = document.createElement('div');
+        card.className = `player-card p${i+1} ${i === activePlayerIndex ? 'active' : ''}`;
+        card.id = `pCard${i}`;
+
+        const edgeFormatted = p.edge.toUpperCase();
+        const typeText = p.type === 'human' ? 'HUMAN' : 'AI';
+
+        card.innerHTML = `
+          <div class="player-info">
+            <span class="player-name">${p.name} (${typeText})</span>
+            <span class="player-edge-info">Edge: ${edgeFormatted}</span>
+            <span class="player-score" id="pScore${i}">${scores[i]}</span>
+            <span class="player-tiles-count" id="pTiles${i}">${tilesPerPlayer > 0 ? 'Tiles: ' + tilesRemaining[i] : 'Tiles: ∞'}</span>
+          </div>
+          <span class="turn-indicator" id="pInd${i}">${i === activePlayerIndex ? 'Turn' : 'Wait'}</span>
+        `;
+        scoreboard.appendChild(card);
+      }
+    }
+
+    function updateEdgeLabels() {
+      const edges = ['top', 'bottom', 'left', 'right'];
+      edges.forEach(edge => {
+        const labelEl = document.getElementById(`edgeLabel${edge.charAt(0).toUpperCase() + edge.slice(1)}`);
+        const claimers = playerConfigs.slice(0, numPlayers).filter(p => p.edge === edge);
+
+        if (claimers.length > 0) {
+          const names = claimers.map(c => c.name).join(', ');
+          const firstPIndex = playerConfigs.findIndex(p => p.id === claimers[0].id);
+          labelEl.textContent = `${edge.toUpperCase()}: ${names}`;
+          labelEl.style.color = PLAYER_COLORS[firstPIndex].main;
+          labelEl.style.borderColor = PLAYER_COLORS[firstPIndex].main;
+        } else {
+          labelEl.textContent = `${edge.toUpperCase()} (Empty)`;
+          labelEl.style.color = 'var(--text-muted)';
+          labelEl.style.borderColor = 'var(--card-border)';
+        }
+      });
+    }
+
+    function generateDraftTile() {
+      draftTile = {
+        value: Math.floor(Math.random() * 15) + 1,
+        rotation: 0
+      };
+      drawDraftTile();
+    }
+
+    function resizeCanvas() {
+      const rect = boardCanvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      boardCanvas.width = rect.width * dpr;
+      boardCanvas.height = rect.height * dpr;
+      boardCtx.scale(dpr, dpr);
+      drawBoard();
+    }
+
+    function getPhysDots(value, rotation) {
+      const baseDots = [
+        (value & 1) !== 0, // Top
+        (value & 2) !== 0, // Right
+        (value & 4) !== 0, // Bottom
+        (value & 8) !== 0  // Left
+      ];
+
+      const physDots = [false, false, false, false];
+      for (let i = 0; i < 4; i++) {
+        if (baseDots[i]) {
+          physDots[(i + rotation) % 4] = true;
+        }
+      }
+      return { physDots };
+    }
+
+    function getTileValueForEdge(value, rotation, edge) {
+      const edgeOrient = EDGE_ORIENTATIONS[edge] || 0;
+      const { physDots } = getPhysDots(value, rotation);
+
+      let val = 0;
+      if (physDots[(0 + edgeOrient) % 4]) val += 1;
+      if (physDots[(1 + edgeOrient) % 4]) val += 2;
+      if (physDots[(2 + edgeOrient) % 4]) val += 4;
+      if (physDots[(3 + edgeOrient) % 4]) val += 8;
+      return val;
+    }
+
+    function drawTileSymbol(ctx, x, y, size, value, rotation, isHighlight = false) {
+      const { physDots } = getPhysDots(value, rotation);
+      const color = isHighlight ? '#ff007f' : (TILE_PALETTE[value] || '#6366f1');
+      const margin = size * 0.08;
+      const tileSize = size - margin * 2;
+      const rx = x + margin;
+      const ry = y + margin;
+      const radius = tileSize * 0.2;
+
+      ctx.fillStyle = isHighlight ? 'rgba(255, 0, 127, 0.3)' : 'rgba(255, 255, 255, 0.07)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(2, size * (isHighlight ? 0.08 : 0.04));
+
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, tileSize, tileSize, radius);
+      ctx.fill();
+      ctx.stroke();
+
+      const cx = rx + tileSize / 2;
+      const cy = ry + tileSize / 2;
+      const offset = tileSize * 0.26;
+      const dotRadius = Math.max(3, tileSize * 0.09);
+
+      const positions = [
+        { x: cx, y: cy - offset }, // Top
+        { x: cx + offset, y: cy }, // Right
+        { x: cx, y: cy + offset }, // Bottom
+        { x: cx - offset, y: cy }  // Left
+      ];
+
+      for (let i = 0; i < 4; i++) {
+        if (physDots[i]) {
+          ctx.beginPath();
+          ctx.arc(positions[i].x, positions[i].y, dotRadius, 0, Math.PI * 2);
+          ctx.fillStyle = isHighlight ? '#ffffff' : color;
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawBoard() {
+      const rect = boardCanvas.parentElement.getBoundingClientRect();
+      const width = rect.width;
+      const cellSize = width / gridSize;
+
+      boardCtx.clearRect(0, 0, width, width);
+
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          const x = c * cellSize;
+          const y = r * cellSize;
+
+          boardCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          boardCtx.lineWidth = 1;
+          boardCtx.strokeRect(x, y, cellSize, cellSize);
+
+          if (selectedCell && selectedCell.r === r && selectedCell.c === c) {
+            boardCtx.fillStyle = 'rgba(255, 209, 102, 0.25)';
+            boardCtx.fillRect(x, y, cellSize, cellSize);
+            boardCtx.strokeStyle = '#ffd166';
+            boardCtx.lineWidth = 3;
+            boardCtx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+          }
+
+          const tile = grid[r][c];
+          if (tile) {
+            const isMatch = highlightedMatches.some(m => m.r === r && m.c === c);
+            drawTileSymbol(boardCtx, x, y, cellSize, tile.value, tile.rotation, isMatch);
+          }
+        }
+      }
+    }
+
+    function drawDraftTile() {
+      draftCanvas.width = 56;
+      draftCanvas.height = 56;
+      draftCtx.clearRect(0, 0, 56, 56);
+      drawTileSymbol(draftCtx, 0, 0, 56, draftTile.value, draftTile.rotation);
+    }
+
+    boardCanvas.addEventListener('pointerdown', async (e) => {
+      if (isAnimating) return;
+      const activePlayer = playerConfigs[activePlayerIndex];
+      if (activePlayer.type.startsWith('ai')) return;
+
+      const rect = boardCanvas.getBoundingClientRect();
+      let clickX = e.clientX - rect.left;
+      let clickY = e.clientY - rect.top;
+      const w = rect.width;
+      const h = rect.height;
+
+      // Transform touch/click coordinates based on CSS view angle rotation
+      if (currentViewAngle === 180) {
+        clickX = w - clickX;
+        clickY = h - clickY;
+      } else if (currentViewAngle === 90) {
+        let tempX = clickX;
+        clickX = clickY;
+        clickY = w - tempX;
+      } else if (currentViewAngle === 270) {
+        let tempX = clickX;
+        clickX = h - clickY;
+        clickY = tempX;
+      }
+
+      const cellSize = w / gridSize;
+      const c = Math.floor(clickX / cellSize);
+      const r = Math.floor(clickY / cellSize);
+
+      if (r < 0 || r >= gridSize || c < 0 || c >= gridSize) return;
+
+      if (grid[r][c] === null) {
+        if (tilesPerPlayer > 0 && tilesRemaining[activePlayerIndex] <= 0) {
+          alert(`${activePlayer.name} has no tiles remaining!`);
+          return;
+        }
+        await placeTile(r, c);
+      } else {
+        if (selectedCell && selectedCell.r === r && selectedCell.c === c) {
+          selectedCell = null;
+        } else {
+          selectedCell = { r, c };
+        }
+        updateUI();
+        drawBoard();
+      }
+    });
+
+    async function placeTile(r, c) {
+      isAnimating = true;
+      grid[r][c] = { value: draftTile.value, rotation: draftTile.rotation };
+      if (tilesPerPlayer > 0) tilesRemaining[activePlayerIndex]--;
+      AudioSynth.play('place');
+      selectedCell = null;
+
+      drawBoard();
+      await evaluateBoardMatchesSequentially();
+      await endTurn();
+    }
+
+    async function rotateBoardTile() {
+      if (!selectedCell || isAnimating) return;
+      isAnimating = true;
+      const { r, c } = selectedCell;
+      if (grid[r][c]) {
+        grid[r][c].rotation = (grid[r][c].rotation + 1) % 4;
+        AudioSynth.play('rotate');
+        selectedCell = null;
+        drawBoard();
+        await evaluateBoardMatchesSequentially();
+        await endTurn();
+      } else {
+        isAnimating = false;
+      }
+    }
+
+    async function evaluateBoardMatchesSequentially() {
+      let combo = 1;
+
+      while (true) {
+        const visited = Array(gridSize).fill(null).map(() => Array(gridSize).fill(false));
+        const matchesThisStep = [];
+
+        for (let r = 0; r < gridSize; r++) {
+          for (let c = 0; c < gridSize; c++) {
+            if (grid[r][c] !== null && !visited[r][c]) {
+              const cluster = [];
+              const queue = [{ r, c }];
+              visited[r][c] = true;
+
+              while (queue.length > 0) {
+                const curr = queue.shift();
+                cluster.push(curr);
+
+                const neighbors = [
+                  { r: curr.r - 1, c: curr.c },
+                  { r: curr.r + 1, c: curr.c },
+                  { r: curr.r, c: curr.c - 1 },
+                  { r: curr.r, c: curr.c + 1 }
+                ];
+
+                for (const n of neighbors) {
+                  if (n.r >= 0 && n.r < gridSize && n.c >= 0 && n.c < gridSize) {
+                    if (grid[n.r][n.c] !== null && !visited[n.r][n.c]) {
+                      visited[n.r][n.c] = true;
+                      queue.push(n);
+                    }
+                  }
+                }
+              }
+
+              const clusterSize = cluster.length;
+
+              for (const pos of cluster) {
+                const tile = grid[pos.r][pos.c];
+                let matchedPlayerPoints = Array(numPlayers).fill(0);
+                let anyPlayerScored = false;
+
+                for (let i = 0; i < numPlayers; i++) {
+                  const valForPlayer = getTileValueForEdge(tile.value, tile.rotation, playerConfigs[i].edge);
+                  if (valForPlayer === clusterSize) {
+                    matchedPlayerPoints[i] = clusterSize * combo;
+                    anyPlayerScored = true;
+                  }
+                }
+
+                if (anyPlayerScored) {
+                  matchesThisStep.push({
+                    r: pos.r,
+                    c: pos.c,
+                    playerPoints: matchedPlayerPoints,
+                    clusterSize
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        if (matchesThisStep.length === 0) break;
+
+        let stepPoints = Array(numPlayers).fill(0);
+        matchesThisStep.forEach(m => {
+          for (let i = 0; i < numPlayers; i++) {
+            stepPoints[i] += m.playerPoints[i];
+          }
+        });
+
+        for (let i = 0; i < numPlayers; i++) {
+          scores[i] += stepPoints[i];
+        }
+
+        highlightedMatches = matchesThisStep;
+        let msg = `Match! Cluster size ${matchesThisStep[0].clusterSize}`;
+        if (combo > 1) msg += ` (Combo x${combo}!)`;
+        for (let i = 0; i < numPlayers; i++) {
+          if (stepPoints[i] > 0) msg += ` | P${i+1} +${stepPoints[i]}pts`;
+        }
+
+        document.getElementById('statusBanner').textContent = msg;
+        updateUI();
+        drawBoard();
+        AudioSynth.play('clear');
+
+        await sleep(900);
+
+        for (const pos of matchesThisStep) {
+          grid[pos.r][pos.c] = null;
+        }
+
+        highlightedMatches = [];
+        drawBoard();
+        await sleep(350);
+
+        combo++;
+      }
+    }
+
+    async function endTurn() {
+      generateDraftTile();
+      activePlayerIndex = (activePlayerIndex + 1) % numPlayers;
+
+      updateBoardRotationView();
+      updateUI();
+      drawBoard();
+      isAnimating = false;
+
+      let isFull = true;
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (grid[r][c] === null) isFull = false;
+        }
+      }
+
+      const noTilesLeft = tilesPerPlayer > 0 && tilesRemaining.slice(0, numPlayers).every(t => t <= 0);
+
+      if (isFull || noTilesLeft) {
+        let scoreText = playerConfigs.slice(0, numPlayers).map((p, i) => `${p.name}: ${scores[i]}`).join('\n');
+        setTimeout(() => alert(`Game Over!\n\nFinal Scores:\n${scoreText}`), 100);
+        return;
+      }
+
+      const activePlayer = playerConfigs[activePlayerIndex];
+      if (activePlayer.type.startsWith('ai')) {
+        if (tilesPerPlayer > 0 && tilesRemaining[activePlayerIndex] <= 0) {
+          endTurn();
+          return;
+        }
+        setTimeout(makeAIMove, 500);
+      }
+    }
+
+    function simulateScores(simGrid) {
+      let simScores = Array(numPlayers).fill(0);
+      const visited = Array(gridSize).fill(null).map(() => Array(gridSize).fill(false));
+
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (simGrid[r][c] !== null && !visited[r][c]) {
+            const cluster = [];
+            const queue = [{ r, c }];
+            visited[r][c] = true;
+
+            while (queue.length > 0) {
+              const curr = queue.shift();
+              cluster.push(curr);
+
+              const neighbors = [
+                { r: curr.r - 1, c: curr.c },
+                { r: curr.r + 1, c: curr.c },
+                { r: curr.r, c: curr.c - 1 },
+                { r: curr.r, c: curr.c + 1 }
+              ];
+
+              for (const n of neighbors) {
+                if (n.r >= 0 && n.r < gridSize && n.c >= 0 && n.c < gridSize) {
+                  if (simGrid[n.r][n.c] !== null && !visited[n.r][n.c]) {
+                    visited[n.r][n.c] = true;
+                    queue.push(n);
+                  }
+                }
+              }
+            }
+
+            const clusterSize = cluster.length;
+            for (const pos of cluster) {
+              const tile = simGrid[pos.r][pos.c];
+              for (let i = 0; i < numPlayers; i++) {
+                const val = getTileValueForEdge(tile.value, tile.rotation, playerConfigs[i].edge);
+                if (val === clusterSize) simScores[i] += clusterSize;
+              }
+            }
+          }
+        }
+      }
+      return simScores;
+    }
+
+    async function makeAIMove() {
+      if (isAnimating) return;
+
+      const emptyCells = [];
+      const occupiedCells = [];
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (grid[r][c] === null) emptyCells.push({ r, c });
+          else occupiedCells.push({ r, c });
+        }
+      }
+
+      if (emptyCells.length === 0 && occupiedCells.length === 0) return;
+
+      const currentAi = playerConfigs[activePlayerIndex];
+
+      if (currentAi.type === 'ai-easy') {
+        const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        draftTile.rotation = Math.floor(Math.random() * 4);
+        await placeTile(choice.r, choice.c);
+        return;
+      }
+
+      let bestAction = null;
+      let maxUtility = -999;
+
+      for (const cell of emptyCells) {
+        for (let rot = 0; rot < 4; rot++) {
+          const simGrid = grid.map(row => row.map(item => item ? { ...item } : null));
+          simGrid[cell.r][cell.c] = { value: draftTile.value, rotation: rot };
+
+          const simScores = simulateScores(simGrid);
+          const aiGain = simScores[activePlayerIndex];
+          let oppGain = 0;
+          for (let i = 0; i < numPlayers; i++) {
+            if (i !== activePlayerIndex) oppGain += simScores[i];
+          }
+
+          let utility = aiGain - (currentAi.type === 'ai-hard' ? oppGain * 1.2 : oppGain * 0.5);
+
+          let neighborCount = 0;
+          const neighbors = [
+            { r: cell.r - 1, c: cell.c }, { r: cell.r + 1, c: cell.c },
+            { r: cell.r, c: cell.c - 1 }, { r: cell.r, c: cell.c + 1 }
+          ];
+          for (const n of neighbors) {
+            if (n.r >= 0 && n.r < gridSize && n.c >= 0 && n.c < gridSize && grid[n.r][n.c] !== null) {
+              neighborCount++;
+            }
+          }
+          if (aiGain === 0 && neighborCount > 0) utility += 0.5;
+
+          if (utility > maxUtility) {
+            maxUtility = utility;
+            bestAction = { type: 'place', r: cell.r, c: cell.c, rotation: rot };
+          }
+        }
+      }
+
+      if (currentAi.type === 'ai-hard' && occupiedCells.length > 0) {
+        for (const cell of occupiedCells) {
+          const simGrid = grid.map(row => row.map(item => item ? { ...item } : null));
+          simGrid[cell.r][cell.c].rotation = (simGrid[cell.r][cell.c].rotation + 1) % 4;
+
+          const simScores = simulateScores(simGrid);
+          const aiGain = simScores[activePlayerIndex];
+          let oppGain = 0;
+          for (let i = 0; i < numPlayers; i++) {
+            if (i !== activePlayerIndex) oppGain += simScores[i];
+          }
+
+          let utility = aiGain - (oppGain * 1.2);
+          if (aiGain > 0 && utility > maxUtility) {
+            maxUtility = utility;
+            bestAction = { type: 'rotateBoard', r: cell.r, c: cell.c };
+          }
+        }
+      }
+
+      if (bestAction) {
+        if (bestAction.type === 'rotateBoard') {
+          selectedCell = { r: bestAction.r, c: bestAction.c };
+          await rotateBoardTile();
+        } else {
+          draftTile.rotation = bestAction.rotation;
+          await placeTile(bestAction.r, bestAction.c);
+        }
+      } else if (emptyCells.length > 0) {
+        const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        await placeTile(choice.r, choice.c);
+      }
+    }
+
+    function updateUI() {
+      for (let i = 0; i < numPlayers; i++) {
+        const pScoreEl = document.getElementById(`pScore${i}`);
+        const pTilesEl = document.getElementById(`pTiles${i}`);
+        const pCardEl = document.getElementById(`pCard${i}`);
+        const pIndEl = document.getElementById(`pInd${i}`);
+
+        if (pScoreEl) pScoreEl.textContent = scores[i];
+        if (pTilesEl) pTilesEl.textContent = tilesPerPlayer > 0 ? `Tiles: ${tilesRemaining[i]}` : 'Tiles: ∞';
+
+        if (pCardEl && pIndEl) {
+          if (i === activePlayerIndex) {
+            pCardEl.classList.add('active');
+            pIndEl.textContent = 'Turn';
+          } else {
+            pCardEl.classList.remove('active');
+            pIndEl.textContent = 'Wait';
+          }
+        }
+      }
+
+      const rotateBoardBtn = document.getElementById('rotateBoardTileBtn');
+      if (selectedCell) {
+        rotateBoardBtn.style.display = 'block';
+        document.getElementById('statusBanner').textContent = `Tile selected at (${selectedCell.r + 1}, ${selectedCell.c + 1}). Tap rotate button to spin it.`;
+      } else if (highlightedMatches.length === 0) {
+        const activePlayer = playerConfigs[activePlayerIndex];
+        document.getElementById('statusBanner').textContent = `${activePlayer.name}: Tap any empty cell to place tile.`;
+      }
+    }
+
+    function renderPlayerConfigControls() {
+      const container = document.getElementById('playerConfigsContainer');
+      container.innerHTML = '';
+
+      const edgesList = ['bottom', 'top', 'left', 'right'];
+      const defaultEdges = ['bottom', 'top', 'left', 'right'];
+
+      for (let i = 0; i < numPlayers; i++) {
+        const div = document.createElement('div');
+        div.style.display = 'grid';
+        div.style.gridTemplateColumns = '1fr 1fr 1fr';
+        div.style.gap = '8px';
+        div.style.marginBottom = '8px';
+        div.style.alignItems = 'center';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.style.fontWeight = '700';
+        nameSpan.style.color = PLAYER_COLORS[i].main;
+        nameSpan.textContent = `Player ${i+1}`;
+
+        const typeSelect = document.createElement('select');
+        typeSelect.id = `pTypeSelect${i}`;
+        typeSelect.innerHTML = `
+          <option value="human" ${playerConfigs[i].type === 'human' ? 'selected' : ''}>Human</option>
+          <option value="ai-easy" ${playerConfigs[i].type === 'ai-easy' ? 'selected' : ''}>AI (Easy)</option>
+          <option value="ai-medium" ${playerConfigs[i].type === 'ai-medium' ? 'selected' : ''}>AI (Medium)</option>
+          <option value="ai-hard" ${playerConfigs[i].type === 'ai-hard' ? 'selected' : ''}>AI (Smart)</option>
+        `;
+
+        const edgeSelect = document.createElement('select');
+        edgeSelect.id = `pEdgeSelect${i}`;
+        const currentEdge = playerConfigs[i].edge || defaultEdges[i];
+
+        edgeSelect.innerHTML = edgesList.map(e => `
+          <option value="${e}" ${currentEdge === e ? 'selected' : ''}>Facing ${e.toUpperCase()} Edge</option>
+        `).join('');
+
+        div.appendChild(nameSpan);
+        div.appendChild(typeSelect);
+        div.appendChild(edgeSelect);
+        container.appendChild(div);
+      }
+    }
+
+    document.getElementById('playerCountSelect').addEventListener('change', (e) => {
+      numPlayers = parseInt(e.target.value);
+      renderPlayerConfigControls();
+    });
+
+    document.getElementById('rotateCwBtn').addEventListener('click', () => {
+      if (isAnimating) return;
+      draftTile.rotation = (draftTile.rotation + 1) % 4;
+      AudioSynth.play('rotate');
+      drawDraftTile();
+    });
+
+    document.getElementById('rotateCcwBtn').addEventListener('click', () => {
+      if (isAnimating) return;
+      draftTile.rotation = (draftTile.rotation + 3) % 4;
+      AudioSynth.play('rotate');
+      drawDraftTile();
+    });
+
+    document.getElementById('draftPreview').addEventListener('click', () => {
+      if (isAnimating) return;
+      draftTile.rotation = (draftTile.rotation + 1) % 4;
+      AudioSynth.play('rotate');
+      drawDraftTile();
+    });
+
+    document.getElementById('rotateBoardTileBtn').addEventListener('click', rotateBoardTile);
+
+    document.getElementById('flipViewBtn').addEventListener('click', () => {
+      currentViewAngle = (currentViewAngle + 90) % 360;
+      document.getElementById('boardContainer').style.transform = `rotate(${currentViewAngle}deg)`;
+      drawBoard();
+    });
+
+    const helpModal = document.getElementById('helpModal');
+    const settingsModal = document.getElementById('settingsModal');
+
+    document.getElementById('helpBtn').addEventListener('click', () => helpModal.classList.add('active'));
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      renderPlayerConfigControls();
+      settingsModal.classList.add('active');
+    });
+
+    document.querySelectorAll('.closeModal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        helpModal.classList.remove('active');
+        settingsModal.classList.remove('active');
+      });
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+
+        e.target.classList.add('active');
+        document.getElementById(e.target.dataset.tab).style.display = 'block';
+      });
+    });
+
+    document.getElementById('newGameBtn').addEventListener('click', () => {
+      soundEnabled = document.getElementById('soundSelect').value === 'true';
+      numPlayers = parseInt(document.getElementById('playerCountSelect').value);
+      gridSize = parseInt(document.getElementById('sizeSelect').value);
+      tilesPerPlayer = parseInt(document.getElementById('tilesSelect').value);
+      autoFlip = document.getElementById('autoflipSelect').value === 'true';
+
+      for (let i = 0; i < numPlayers; i++) {
+        const tSel = document.getElementById(`pTypeSelect${i}`);
+        const eSel = document.getElementById(`pEdgeSelect${i}`);
+        playerConfigs[i].type = tSel ? tSel.value : 'human';
+        playerConfigs[i].edge = eSel ? eSel.value : 'bottom';
+        playerConfigs[i].name = `Player ${i+1}`;
+      }
+
+      settingsModal.classList.remove('active');
+      initGame();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initial setup
+    renderPlayerConfigControls();
+    initGame();
+  </script>
+</body>
+</html>
