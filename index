@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Perspective - Symbol Tile Game</title>
+  <style>
+    :root {
+      --bg-dark: #0f101d;
+      --card-bg: rgba(26, 28, 48, 0.85);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --p1-color: #ff6b35;
+      --p1-glow: rgba(255, 107, 53, 0.4);
+      --p2-color: #00e5ff;
+      --p2-glow: rgba(0, 229, 255, 0.4);
+      --accent-gold: #ffd166;
+      --text-light: #f8f9fa;
+      --text-muted: #a0a5c0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% 20%, #1e2038 0%, #0f101d 80%);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      overflow-x: hidden;
+    }
+
+    /* Header & Navigation */
+    header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      margin-bottom: 8px;
+    }
+
+    .brand h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--p1-color), var(--p2-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-light);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Scoreboard */
+    .scoreboard {
+      width: 100%;
+      max-width: 600px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .player-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .player-card.p1 { border-color: rgba(255, 107, 53, 0.3); }
+    .player-card.p2 { border-color: rgba(0, 229, 255, 0.3); }
+
+    .player-card.active.p1 {
+      border-color: var(--p1-color);
+      box-shadow: 0 0 15px var(--p1-glow);
+      background: rgba(255, 107, 53, 0.1);
+    }
+
+    .player-card.active.p2 {
+      border-color: var(--p2-color);
+      box-shadow: 0 0 15px var(--p2-glow);
+      background: rgba(0, 229, 255, 0.1);
+    }
+
+    .player-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-name {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .player-card.p1 .player-name { color: var(--p1-color); }
+    .player-card.p2 .player-name { color: var(--p2-color); }
+
+    .player-score {
+      font-size: 1.5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .player-tiles-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .turn-indicator {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* Game Board Container */
+    .board-container {
+      width: 100%;
+      max-width: 600px;
+      aspect-ratio: 1;
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .board-container.flipped {
+      transform: rotate(180deg);
+    }
+
+    #boardCanvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      touch-action: none;
+    }
+
+    /* Controls & Hand Area */
+    .controls-panel {
+      width: 100%;
+      max-width: 600px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 12px;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .draft-tile-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .draft-preview {
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .draft-preview canvas {
+      width: 56px;
+      height: 56px;
+    }
+
+    .draft-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .rotate-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text-light);
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      flex: 1;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5, #3b82f6);
+      border-color: #6366f1;
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      border-color: #fbbf24;
+    }
+
+    .status-banner {
+      font-size: 0.85rem;
+      text-align: center;
+      color: var(--accent-gold);
+      font-weight: 700;
+      min-height: 22px;
+      transition: color 0.3s ease;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #16182e;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn.active {
+      color: var(--p2-color);
+      border-bottom-color: var(--p2-color);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #c0c4e0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .rules-section h3 {
+      color: var(--text-light);
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text-light);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    option {
+      background: #16182e;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <h1>PERSPECTIVE</h1>
+    </div>
+    <div class="header-btns">
+      <button class="icon-btn" id="flipViewBtn">🔄 View</button>
+      <button class="icon-btn" id="helpBtn">❓ Rules</button>
+      <button class="icon-btn" id="settingsBtn">⚙️ Options</button>
+    </div>
+  </header>
+
+  <!-- Scoreboard -->
+  <div class="scoreboard">
+    <div class="player-card p1 active" id="p1Card">
+      <div class="player-info">
+        <span class="player-name" id="p1Name">Player 1</span>
+        <span class="player-score" id="p1Score">0</span>
+        <span class="player-tiles-count" id="p1Tiles">Tiles: 20</span>
+      </div>
+      <span class="turn-indicator" id="p1Indicator">Turn</span>
+    </div>
+    <div class="player-card p2" id="p2Card">
+      <div class="player-info">
+        <span class="player-name" id="p2Name">Player 2</span>
+        <span class="player-score" id="p2Score">0</span>
+        <span class="player-tiles-count" id="p2Tiles">Tiles: 20</span>
+      </div>
+      <span class="turn-indicator" id="p2Indicator">Wait</span>
+    </div>
+  </div>
+
+  <!-- Game Board -->
+  <div class="board-container" id="boardContainer">
+    <canvas id="boardCanvas"></canvas>
+  </div>
+
+  <!-- Controls Panel -->
+  <div class="controls-panel">
+    <div class="action-bar">
+      <div class="draft-tile-container">
+        <div class="draft-preview" id="draftPreview" title="Tap to rotate tile">
+          <canvas id="draftCanvas"></canvas>
+        </div>
+        <div class="draft-label">
+          <div>Next Tile</div>
+          <div style="font-size:0.65rem; color:var(--text-muted);">Tap tile to spin</div>
+        </div>
+      </div>
+      <div class="rotate-btns">
+        <button class="btn" id="rotateCcwBtn">↺ 90°</button>
+        <button class="btn" id="rotateCwBtn">↻ 90°</button>
+      </div>
+    </div>
+    <div class="rotate-btns">
+      <button class="btn btn-accent" id="rotateBoardTileBtn" style="display:none;">↻ Rotate Board Tile</button>
+    </div>
+    <div class="status-banner" id="statusBanner">Player 1: Tap any empty cell to place your tile.</div>
+  </div>
+
+  <!-- Rules & Help Modal -->
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>How to Play Perspective</h2>
+        <button class="close-btn closeModal">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="tab-overview">Overview</button>
+        <button class="tab-btn" data-tab="tab-symbols">Symbols (1-15)</button>
+        <button class="tab-btn" data-tab="tab-perspective">Dual Perspective</button>
+        <button class="tab-btn" data-tab="tab-scoring">Matching</button>
+      </div>
+      <div class="modal-body">
+        <div id="tab-overview" class="tab-content">
+          <div class="rules-section">
+            <h3>Goal</h3>
+            <p>Score points by placing tiles on the grid to create orthogonally connected clusters of tiles whose total count matches tile symbol values.</p>
+          </div>
+          <div class="rules-section">
+            <h3>Your Turn Options</h3>
+            <p>On each turn, perform <b>one</b> action:</p>
+            <ul style="margin-left: 20px; margin-top: 4px;">
+              <li><b>Place a Tile:</b> Rotate your draft tile with the ↺ / ↻ buttons or by tapping it, then tap an empty cell on the grid.</li>
+              <li><b>Rotate Existing Tile:</b> Tap a tile on the board to select it, then tap "Rotate Board Tile" to turn it 90° CW.</li>
+            </ul>
+          </div>
+        </div>
+        <div id="tab-symbols" class="tab-content" style="display:none;">
+          <div class="rules-section">
+            <h3>4-Bit Binary Dot System</h3>
+            <p>Each tile contains 1 to 4 dots representing a binary number from 1 to 15:</p>
+            <ul style="margin-left: 20px; margin-top: 6px;">
+              <li><b>Top Dot</b> = 1</li>
+              <li><b>Right Dot</b> = 2</li>
+              <li><b>Bottom Dot</b> = 4</li>
+              <li><b>Left Dot</b> = 8</li>
+            </ul>
+            <p style="margin-top:8px;">Combining dot positions gives values from 1 to 15 (e.g., Top + Right = 1 + 2 = 3).</p>
+          </div>
+        </div>
+        <div id="tab-perspective" class="tab-content" style="display:none;">
+          <div class="rules-section">
+            <h3>Dual Perspective Rotation</h3>
+            <p>Player 2 views the board 180° upside-down relative to Player 1!</p>
+            <p style="margin-top:6px;">Because tile numbers depend on dot orientations, a single tile represents different values for each player:</p>
+            <ul style="margin-left: 20px; margin-top: 6px;">
+              <li>A tile with a single <b>Top dot</b> is <b>1</b> for Player 1, but appears at the <b>Bottom</b> for Player 2, giving it a value of <b>4</b>!</li>
+              <li>Matches can score points for Player 1, Player 2, or BOTH simultaneously!</li>
+            </ul>
+          </div>
+        </div>
+        <div id="tab-scoring" class="tab-content" style="display:none;">
+          <div class="rules-section">
+            <h3>Connected Cluster Matches</h3>
+            <p>Whenever tiles are connected horizontally or vertically in a shape (L-shapes, straight lines, T-shapes, etc.), the total number of touching tiles N is counted.</p>
+            <p style="margin-top:6px;">If any tile in that cluster has a value equal to N, that tile clears and awards N points to the matching player!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Game Options</h2>
+        <button class="close-btn closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-grid">
+          <div class="setting-item">
+            <span class="setting-label">Game Mode</span>
+            <select id="modeSelect">
+              <option value="pvp">2 Players (Pass & Play)</option>
+              <option value="ai-easy">VS AI (Easy)</option>
+              <option value="ai-medium" selected>VS AI (Medium)</option>
+              <option value="ai-hard">VS AI (Smart)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Board Size</span>
+            <select id="sizeSelect">
+              <option value="5" selected>Small (5 x 5)</option>
+              <option value="10">Medium (10 x 10)</option>
+              <option value="15">Large (15 x 15)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Tiles Per Player</span>
+            <select id="tilesSelect">
+              <option value="20" selected>20 Tiles</option>
+              <option value="40">40 Tiles</option>
+              <option value="80">80 Tiles</option>
+              <option value="160">160 Tiles</option>
+              <option value="0">Unlimited</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Auto-Flip Board View</span>
+            <select id="autoflipSelect">
+              <option value="true">On Turn Change</option>
+              <option value="false" selected>Manual Only</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="newGameBtn" style="margin-top:10px;">Apply & Start New Game</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Audio Synthesizer
+    const AudioSynth = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      },
+      play(type) {
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          const now = this.ctx.currentTime;
+
+          if (type === 'place') {
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+          } else if (type === 'rotate') {
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(600, now + 0.06);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.06);
+            osc.start(now);
+            osc.stop(now + 0.06);
+          } else if (type === 'clear') {
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.25);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+          }
+        } catch(e) {}
+      }
+    };
+
+    const TILE_PALETTE = [
+      "",
+      "#4a5568", "#3182ce", "#38a169", "#d69e2e",
+      "#dd6b20", "#e53e3e", "#805ad5", "#319795",
+      "#d69e2e", "#3182ce", "#00b4d8", "#38a169",
+      "#d81b60", "#7b2cbf", "#e65100"
+    ];
+
+    let gridSize = 5;
+    let grid = [];
+    let currentPlayer = 1;
+    let scores = { 1: 0, 2: 0 };
+    let tilesPerPlayer = 20;
+    let tilesRemaining = { 1: 20, 2: 20 };
+    let gameMode = 'ai-medium';
+    let autoFlip = false;
+    let isFlipped = false;
+    let draftTile = { value: 1, rotation: 0 };
+    let selectedCell = null;
+    let isAnimating = false;
+    let highlightedMatches = [];
+
+    const boardCanvas = document.getElementById('boardCanvas');
+    const boardCtx = boardCanvas.getContext('2d');
+    const draftCanvas = document.getElementById('draftCanvas');
+    const draftCtx = draftCanvas.getContext('2d');
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function initGame() {
+      grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
+      scores = { 1: 0, 2: 0 };
+      tilesRemaining = { 1: tilesPerPlayer, 2: tilesPerPlayer };
+      currentPlayer = 1;
+      selectedCell = null;
+      highlightedMatches = [];
+      isAnimating = false;
+      isFlipped = false;
+      document.getElementById('boardContainer').classList.remove('flipped');
+      generateDraftTile();
+      updateUI();
+      resizeCanvas();
+      drawBoard();
+    }
+
+    function generateDraftTile() {
+      draftTile = {
+        value: Math.floor(Math.random() * 15) + 1,
+        rotation: 0
+      };
+      drawDraftTile();
+    }
+
+    function resizeCanvas() {
+      const rect = boardCanvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      boardCanvas.width = rect.width * dpr;
+      boardCanvas.height = rect.height * dpr;
+      boardCtx.scale(dpr, dpr);
+      drawBoard();
+    }
+
+    function getTileValues(value, rotation) {
+      const baseDots = [
+        (value & 1) !== 0,
+        (value & 2) !== 0,
+        (value & 4) !== 0,
+        (value & 8) !== 0
+      ];
+
+      const physDots = [false, false, false, false];
+      for (let i = 0; i < 4; i++) {
+        if (baseDots[i]) {
+          physDots[(i + rotation) % 4] = true;
+        }
+      }
+
+      const p1Val = (physDots[0] ? 1 : 0) + (physDots[1] ? 2 : 0) + (physDots[2] ? 4 : 0) + (physDots[3] ? 8 : 0);
+      const p2Val = (physDots[2] ? 1 : 0) + (physDots[3] ? 2 : 0) + (physDots[0] ? 4 : 0) + (physDots[1] ? 8 : 0);
+
+      return { p1Val, p2Val, physDots };
+    }
+
+    function drawTileSymbol(ctx, x, y, size, value, rotation, isHighlight = false) {
+      const { physDots } = getTileValues(value, rotation);
+      const color = isHighlight ? '#ff007f' : (TILE_PALETTE[value] || '#6366f1');
+      const margin = size * 0.08;
+      const tileSize = size - margin * 2;
+      const rx = x + margin;
+      const ry = y + margin;
+      const radius = tileSize * 0.2;
+
+      ctx.fillStyle = isHighlight ? 'rgba(255, 0, 127, 0.3)' : 'rgba(255, 255, 255, 0.07)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(2, size * (isHighlight ? 0.08 : 0.04));
+
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, tileSize, tileSize, radius);
+      ctx.fill();
+      ctx.stroke();
+
+      const cx = rx + tileSize / 2;
+      const cy = ry + tileSize / 2;
+      const offset = tileSize * 0.26;
+      const dotRadius = Math.max(3, tileSize * 0.09);
+
+      const positions = [
+        { x: cx, y: cy - offset },
+        { x: cx + offset, y: cy },
+        { x: cx, y: cy + offset },
+        { x: cx - offset, y: cy }
+      ];
+
+      for (let i = 0; i < 4; i++) {
+        if (physDots[i]) {
+          ctx.beginPath();
+          ctx.arc(positions[i].x, positions[i].y, dotRadius, 0, Math.PI * 2);
+          ctx.fillStyle = isHighlight ? '#ffffff' : color;
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawBoard() {
+      const rect = boardCanvas.parentElement.getBoundingClientRect();
+      const width = rect.width;
+      const cellSize = width / gridSize;
+
+      boardCtx.clearRect(0, 0, width, width);
+
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          const x = c * cellSize;
+          const y = r * cellSize;
+
+          boardCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          boardCtx.lineWidth = 1;
+          boardCtx.strokeRect(x, y, cellSize, cellSize);
+
+          if (selectedCell && selectedCell.r === r && selectedCell.c === c) {
+            boardCtx.fillStyle = 'rgba(255, 209, 102, 0.25)';
+            boardCtx.fillRect(x, y, cellSize, cellSize);
+            boardCtx.strokeStyle = '#ffd166';
+            boardCtx.lineWidth = 3;
+            boardCtx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+          }
+
+          const tile = grid[r][c];
+          if (tile) {
+            const isMatch = highlightedMatches.some(m => m.r === r && m.c === c);
+            drawTileSymbol(boardCtx, x, y, cellSize, tile.value, tile.rotation, isMatch);
+          }
+        }
+      }
+    }
+
+    function drawDraftTile() {
+      draftCanvas.width = 56;
+      draftCanvas.height = 56;
+      draftCtx.clearRect(0, 0, 56, 56);
+      drawTileSymbol(draftCtx, 0, 0, 56, draftTile.value, draftTile.rotation);
+    }
+
+    boardCanvas.addEventListener('pointerdown', async (e) => {
+      if (isAnimating) return;
+      AudioSynth.init();
+      const rect = boardCanvas.getBoundingClientRect();
+      let clickX = e.clientX - rect.left;
+      let clickY = e.clientY - rect.top;
+
+      if (isFlipped) {
+        clickX = rect.width - clickX;
+        clickY = rect.height - clickY;
+      }
+
+      const cellSize = rect.width / gridSize;
+      const c = Math.floor(clickX / cellSize);
+      const r = Math.floor(clickY / cellSize);
+
+      if (r < 0 || r >= gridSize || c < 0 || c >= gridSize) return;
+
+      if (grid[r][c] === null) {
+        if (tilesPerPlayer > 0 && tilesRemaining[currentPlayer] <= 0) {
+          alert(`Player ${currentPlayer} has no tiles remaining!`);
+          return;
+        }
+        await placeTile(r, c);
+      } else {
+        if (selectedCell && selectedCell.r === r && selectedCell.c === c) {
+          selectedCell = null;
+        } else {
+          selectedCell = { r, c };
+        }
+        updateUI();
+        drawBoard();
+      }
+    });
+
+    async function placeTile(r, c) {
+      isAnimating = true;
+      grid[r][c] = { value: draftTile.value, rotation: draftTile.rotation };
+      if (tilesPerPlayer > 0) tilesRemaining[currentPlayer]--;
+      AudioSynth.play('place');
+      selectedCell = null;
+
+      drawBoard();
+      await evaluateBoardMatchesSequentially();
+      await endTurn();
+    }
+
+    async function rotateBoardTile() {
+      if (!selectedCell || isAnimating) return;
+      isAnimating = true;
+      const { r, c } = selectedCell;
+      if (grid[r][c]) {
+        grid[r][c].rotation = (grid[r][c].rotation + 1) % 4;
+        AudioSynth.play('rotate');
+        selectedCell = null;
+        drawBoard();
+        await evaluateBoardMatchesSequentially();
+        await endTurn();
+      } else {
+        isAnimating = false;
+      }
+    }
+
+    async function evaluateBoardMatchesSequentially() {
+      let combo = 1;
+
+      while (true) {
+        const visited = Array(gridSize).fill(null).map(() => Array(gridSize).fill(false));
+        const matchesThisStep = [];
+
+        for (let r = 0; r < gridSize; r++) {
+          for (let c = 0; c < gridSize; c++) {
+            if (grid[r][c] !== null && !visited[r][c]) {
+              const cluster = [];
+              const queue = [{ r, c }];
+              visited[r][c] = true;
+
+              while (queue.length > 0) {
+                const curr = queue.shift();
+                cluster.push(curr);
+
+                const neighbors = [
+                  { r: curr.r - 1, c: curr.c },
+                  { r: curr.r + 1, c: curr.c },
+                  { r: curr.r, c: curr.c - 1 },
+                  { r: curr.r, c: curr.c + 1 }
+                ];
+
+                for (const n of neighbors) {
+                  if (n.r >= 0 && n.r < gridSize && n.c >= 0 && n.c < gridSize) {
+                    if (grid[n.r][n.c] !== null && !visited[n.r][n.c]) {
+                      visited[n.r][n.c] = true;
+                      queue.push(n);
+                    }
+                  }
+                }
+              }
+
+              const clusterSize = cluster.length;
+
+              for (const pos of cluster) {
+                const tile = grid[pos.r][pos.c];
+                const { p1Val, p2Val } = getTileValues(tile.value, tile.rotation);
+
+                let p1Scored = (p1Val === clusterSize);
+                let p2Scored = (p2Val === clusterSize);
+
+                if (p1Scored || p2Scored) {
+                  matchesThisStep.push({
+                    r: pos.r,
+                    c: pos.c,
+                    p1Pts: p1Scored ? clusterSize * combo : 0,
+                    p2Pts: p2Scored ? clusterSize * combo : 0,
+                    clusterSize
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        if (matchesThisStep.length === 0) break;
+
+        let stepP1 = 0, stepP2 = 0;
+        matchesThisStep.forEach(m => {
+          stepP1 += m.p1Pts;
+          stepP2 += m.p2Pts;
+        });
+
+        scores[1] += stepP1;
+        scores[2] += stepP2;
+
+        highlightedMatches = matchesThisStep;
+        let msg = `Match! Cluster size ${matchesThisStep[0].clusterSize}`;
+        if (combo > 1) msg += ` (Combo x${combo}!)`;
+        if (stepP1 > 0) msg += ` | P1 +${stepP1}pts`;
+        if (stepP2 > 0) msg += ` | P2 +${stepP2}pts`;
+
+        document.getElementById('statusBanner').textContent = msg;
+        updateUI();
+        drawBoard();
+        AudioSynth.play('clear');
+
+        await sleep(900);
+
+        for (const pos of matchesThisStep) {
+          grid[pos.r][pos.c] = null;
+        }
+
+        highlightedMatches = [];
+        drawBoard();
+        await sleep(350);
+
+        combo++;
+      }
+    }
+
+    async function endTurn() {
+      generateDraftTile();
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+
+      if (autoFlip) {
+        isFlipped = (currentPlayer === 2);
+        document.getElementById('boardContainer').classList.toggle('flipped', isFlipped);
+      }
+
+      updateUI();
+      drawBoard();
+      isAnimating = false;
+
+      let isFull = true;
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (grid[r][c] === null) isFull = false;
+        }
+      }
+
+      const noTilesLeft = (tilesPerPlayer > 0 && tilesRemaining[1] <= 0 && tilesRemaining[2] <= 0);
+
+      if (isFull || noTilesLeft) {
+        setTimeout(() => alert(`Game Over!\nFinal Score:\nPlayer 1: ${scores[1]}\nPlayer 2: ${scores[2]}`), 100);
+        return;
+      }
+
+      if (currentPlayer === 2 && gameMode.startsWith('ai')) {
+        if (tilesPerPlayer > 0 && tilesRemaining[2] <= 0) {
+          endTurn();
+          return;
+        }
+        setTimeout(makeAIMove, 500);
+      }
+    }
+
+    function simulateScores(simGrid) {
+      let p1Total = 0, p2Total = 0;
+      const visited = Array(gridSize).fill(null).map(() => Array(gridSize).fill(false));
+
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (simGrid[r][c] !== null && !visited[r][c]) {
+            const cluster = [];
+            const queue = [{ r, c }];
+            visited[r][c] = true;
+
+            while (queue.length > 0) {
+              const curr = queue.shift();
+              cluster.push(curr);
+
+              const neighbors = [
+                { r: curr.r - 1, c: curr.c },
+                { r: curr.r + 1, c: curr.c },
+                { r: curr.r, c: curr.c - 1 },
+                { r: curr.r, c: curr.c + 1 }
+              ];
+
+              for (const n of neighbors) {
+                if (n.r >= 0 && n.r < gridSize && n.c >= 0 && n.c < gridSize) {
+                  if (simGrid[n.r][n.c] !== null && !visited[n.r][n.c]) {
+                    visited[n.r][n.c] = true;
+                    queue.push(n);
+                  }
+                }
+              }
+            }
+
+            const clusterSize = cluster.length;
+            for (const pos of cluster) {
+              const tile = simGrid[pos.r][pos.c];
+              const { p1Val, p2Val } = getTileValues(tile.value, tile.rotation);
+              if (p1Val === clusterSize) p1Total += clusterSize;
+              if (p2Val === clusterSize) p2Total += clusterSize;
+            }
+          }
+        }
+      }
+      return { p1Total, p2Total };
+    }
+
+    async function makeAIMove() {
+      if (isAnimating) return;
+
+      const emptyCells = [];
+      const occupiedCells = [];
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (grid[r][c] === null) emptyCells.push({ r, c });
+          else occupiedCells.push({ r, c });
+        }
+      }
+
+      if (emptyCells.length === 0 && occupiedCells.length === 0) return;
+
+      if (gameMode === 'ai-easy') {
+        const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        draftTile.rotation = Math.floor(Math.random() * 4);
+        await placeTile(choice.r, choice.c);
+        return;
+      }
+
+      let bestAction = null;
+      let maxScoreDiff = -999;
+
+      for (const cell of emptyCells) {
+        for (let rot = 0; rot < 4; rot++) {
+          const simGrid = grid.map(row => row.map(item => item ? { ...item } : null));
+          simGrid[cell.r][cell.c] = { value: draftTile.value, rotation: rot };
+
+          const { p1Total, p2Total } = simulateScores(simGrid);
+          let scoreDiff = p2Total - (gameMode === 'ai-hard' ? p1Total * 1.2 : 0);
+
+          let neighborCount = 0;
+          const neighbors = [
+            { r: cell.r - 1, c: cell.c }, { r: cell.r + 1, c: cell.c },
+            { r: cell.r, c: cell.c - 1 }, { r: cell.r, c: cell.c + 1 }
+          ];
+          for (const n of neighbors) {
+            if (n.r >= 0 && n.r < gridSize && n.c >= 0 && n.c < gridSize && grid[n.r][n.c] !== null) {
+              neighborCount++;
+            }
+          }
+          if (p2Total === 0 && neighborCount > 0) scoreDiff += 0.5;
+
+          if (scoreDiff > maxScoreDiff) {
+            maxScoreDiff = scoreDiff;
+            bestAction = { type: 'place', r: cell.r, c: cell.c, rotation: rot };
+          }
+        }
+      }
+
+      if (gameMode === 'ai-hard' && occupiedCells.length > 0) {
+        for (const cell of occupiedCells) {
+          const simGrid = grid.map(row => row.map(item => item ? { ...item } : null));
+          simGrid[cell.r][cell.c].rotation = (simGrid[cell.r][cell.c].rotation + 1) % 4;
+
+          const { p1Total, p2Total } = simulateScores(simGrid);
+          let scoreDiff = p2Total - (p1Total * 1.2);
+
+          if (p2Total > 0 && scoreDiff > maxScoreDiff) {
+            maxScoreDiff = scoreDiff;
+            bestAction = { type: 'rotateBoard', r: cell.r, c: cell.c };
+          }
+        }
+      }
+
+      if (bestAction) {
+        if (bestAction.type === 'rotateBoard') {
+          selectedCell = { r: bestAction.r, c: bestAction.c };
+          await rotateBoardTile();
+        } else {
+          draftTile.rotation = bestAction.rotation;
+          await placeTile(bestAction.r, bestAction.c);
+        }
+      } else if (emptyCells.length > 0) {
+        const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        await placeTile(choice.r, choice.c);
+      }
+    }
+
+    function updateUI() {
+      document.getElementById('p1Score').textContent = scores[1];
+      document.getElementById('p2Score').textContent = scores[2];
+
+      const tilesText1 = tilesPerPlayer > 0 ? `Tiles: ${tilesRemaining[1]}` : 'Tiles: ∞';
+      const tilesText2 = tilesPerPlayer > 0 ? `Tiles: ${tilesRemaining[2]}` : 'Tiles: ∞';
+      document.getElementById('p1Tiles').textContent = tilesText1;
+      document.getElementById('p2Tiles').textContent = tilesText2;
+
+      const p1Card = document.getElementById('p1Card');
+      const p2Card = document.getElementById('p2Card');
+      const p1Ind = document.getElementById('p1Indicator');
+      const p2Ind = document.getElementById('p2Indicator');
+
+      if (currentPlayer === 1) {
+        p1Card.classList.add('active');
+        p2Card.classList.remove('active');
+        p1Ind.textContent = 'Turn';
+        p2Ind.textContent = 'Wait';
+      } else {
+        p2Card.classList.add('active');
+        p1Card.classList.remove('active');
+        p2Ind.textContent = 'Turn';
+        p1Ind.textContent = 'Wait';
+      }
+
+      const rotateBoardBtn = document.getElementById('rotateBoardTileBtn');
+      if (selectedCell) {
+        rotateBoardBtn.style.display = 'block';
+        document.getElementById('statusBanner').textContent = `Tile selected at (${selectedCell.r + 1}, ${selectedCell.c + 1}). Tap rotate button to spin it.`;
+      } else if (highlightedMatches.length === 0) {
+        const pName = currentPlayer === 1 ? 'Player 1' : (gameMode.startsWith('ai') ? 'AI' : 'Player 2');
+        document.getElementById('statusBanner').textContent = `${pName}: Tap any empty cell to place tile.`;
+      }
+    }
+
+    document.getElementById('rotateCwBtn').addEventListener('click', () => {
+      if (isAnimating) return;
+      AudioSynth.init();
+      draftTile.rotation = (draftTile.rotation + 1) % 4;
+      AudioSynth.play('rotate');
+      drawDraftTile();
+    });
+
+    document.getElementById('rotateCcwBtn').addEventListener('click', () => {
+      if (isAnimating) return;
+      AudioSynth.init();
+      draftTile.rotation = (draftTile.rotation + 3) % 4;
+      AudioSynth.play('rotate');
+      drawDraftTile();
+    });
+
+    document.getElementById('draftPreview').addEventListener('click', () => {
+      if (isAnimating) return;
+      AudioSynth.init();
+      draftTile.rotation = (draftTile.rotation + 1) % 4;
+      AudioSynth.play('rotate');
+      drawDraftTile();
+    });
+
+    document.getElementById('rotateBoardTileBtn').addEventListener('click', rotateBoardTile);
+
+    document.getElementById('flipViewBtn').addEventListener('click', () => {
+      isFlipped = !isFlipped;
+      document.getElementById('boardContainer').classList.toggle('flipped', isFlipped);
+      drawBoard();
+    });
+
+    const helpModal = document.getElementById('helpModal');
+    const settingsModal = document.getElementById('settingsModal');
+
+    document.getElementById('helpBtn').addEventListener('click', () => helpModal.classList.add('active'));
+    document.getElementById('settingsBtn').addEventListener('click', () => settingsModal.classList.add('active'));
+
+    document.querySelectorAll('.closeModal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        helpModal.classList.remove('active');
+        settingsModal.classList.remove('active');
+      });
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+
+        e.target.classList.add('active');
+        document.getElementById(e.target.dataset.tab).style.display = 'block';
+      });
+    });
+
+    document.getElementById('newGameBtn').addEventListener('click', () => {
+      gameMode = document.getElementById('modeSelect').value;
+      gridSize = parseInt(document.getElementById('sizeSelect').value);
+      tilesPerPlayer = parseInt(document.getElementById('tilesSelect').value);
+      autoFlip = document.getElementById('autoflipSelect').value === 'true';
+
+      const p2Name = gameMode.startsWith('ai') ? 'AI Opponent' : 'Player 2';
+      document.getElementById('p2Name').textContent = p2Name;
+
+      settingsModal.classList.remove('active');
+      initGame();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    initGame();
+  </script>
+</body>
+</html>
